@@ -13,7 +13,7 @@
         .nav-link { color: #f1f5f9; font-size: 0.75rem; font-weight: 500; padding: 0.6rem 0.8rem; border-radius: 4px; transition: 0.2s; white-space: nowrap; }
         .nav-link:hover { background-color: rgba(255,255,255,0.15); }
         .nav-link.active { background-color: #875A7B; box-shadow: inset 0 -2px 0 #00A09D; }
-        .odoo-btn { background-color: #00A09D; color: white; padding: 0.5rem 1.25rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem; transition: 0.2s; }
+        .odoo-btn { background-color: #00A09D; color: white; padding: 0.5rem 1.25rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem; transition: 0.2s; cursor: pointer; }
         .odoo-btn:hover { background-color: #008b88; }
         .card { background: white; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .badge { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; }
@@ -31,246 +31,262 @@
         .report-table tr:nth-child(even) { background-color: #f8fafc; }
         .report-header { background-color: #f8fafc; font-weight: 800; font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #e2e8f0; }
         .report-subtotal { background-color: #f1f5f9; font-weight: 700; }
+        #login-overlay { background: linear-gradient(135deg, #714B67 0%, #4a3144 100%); }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <!-- Top Navigation -->
-    <nav class="odoo-topbar h-14 flex items-center px-6 justify-between flex-shrink-0 shadow-lg z-50 no-print">
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 mr-6">
-                <img src="https://media.licdn.com/dms/image/v2/D560BAQEPjP3aKt0lyg/company-logo_100_100/B56ZU2_QxhHEAU-/0/1740384308771/hiregrow_consultants_logo?e=1772064000&v=beta&t=jyFG8nOobovTGg8CXl__cBH3jpSI8NaWLLBb1kKivvw" class="h-7 w-7 rounded bg-white p-0.5">
-                <span class="text-white font-extrabold text-base tracking-tight">RaveOne <span class="font-normal opacity-70">ERP</span></span>
+    <!-- SECURE LOGIN SCREEN -->
+    <div id="login-overlay" class="fixed inset-0 z-[200] flex items-center justify-center p-6">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <img src="https://media.licdn.com/dms/image/v2/D560BAQEPjP3aKt0lyg/company-logo_100_100/B56ZU2_QxhHEAU-/0/1740384308771/hiregrow_consultants_logo?e=1772064000&v=beta&t=jyFG8nOobovTGg8CXl__cBH3jpSI8NaWLLBb1kKivvw" class="h-16 w-16 mx-auto mb-4 rounded-xl shadow-md">
+            <h1 class="text-2xl font-black text-slate-800 mb-2">RaveOne ERP</h1>
+            <p class="text-slate-500 text-sm mb-8 font-medium">Professional Accounting Suite</p>
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Access Token</label>
+                    <input type="password" id="access-token" placeholder="••••••••" class="w-full border-2 border-slate-100 rounded-lg px-4 py-3 outline-none focus:border-indigo-500 transition-all font-mono">
+                </div>
+                <button onclick="authenticate()" class="odoo-btn w-full py-4 text-sm tracking-widest uppercase">Verify Identity</button>
             </div>
-            <div class="flex items-center gap-1">
-                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-link active">Dashboard</button>
-                <button onclick="switchView('quotes')" id="nav-quotes" class="nav-link">Quotations</button>
-                <button onclick="switchView('income')" id="nav-income" class="nav-link">Sales</button>
-                <button onclick="switchView('expenses')" id="nav-expenses" class="nav-link">Purchases</button>
-                <button onclick="switchView('contacts')" id="nav-contacts" class="nav-link">Contacts</button>
-                <button onclick="switchView('budgets')" id="nav-budgets" class="nav-link">Budgeting</button>
-                <button onclick="switchView('reporting')" id="nav-reporting" class="nav-link">Reports</button>
-            </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <button onclick="loadDemoData()" title="Demo Mode" class="text-indigo-200 hover:text-white transition"><i class="fas fa-magic text-sm"></i></button>
-            <button onclick="fetchData()" title="Sync" class="text-purple-200 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
-            <button onclick="switchView('form-income')" class="odoo-btn">+ Create</button>
-        </div>
-    </nav>
-
-    <!-- Context Bar -->
-    <div class="bg-white border-b h-10 flex items-center px-8 justify-between shadow-sm flex-shrink-0 no-print">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest" id="page-title">Financial Overview</div>
-        <div id="report-controls" class="hidden flex gap-6">
-            <button onclick="renderReports('pl')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Profit & Loss</button>
-            <button onclick="renderReports('bs')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Balance Sheet</button>
-            <button onclick="renderReports('cf')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Cash Flow</button>
-            <button onclick="renderReports('aging')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Aging Report</button>
-        </div>
-        <div id="contact-controls" class="hidden flex gap-4">
-            <button onclick="openContactModal()" class="text-[10px] font-black text-indigo-600 uppercase">+ New Contact</button>
+            <p id="login-error" class="text-rose-500 text-xs mt-4 font-bold hidden">Invalid Access Token</p>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <main id="viewport" class="flex-1 overflow-y-auto p-6 lg:p-10 no-print">
-        
-        <!-- DASHBOARD -->
-        <div id="view-dashboard" class="space-y-8">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="card p-6 border-l-4 border-emerald-500">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Gross Inflow (Confirmed)</div>
-                    <div class="text-2xl font-black text-slate-800" id="stat-income">₹ 0</div>
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-content" class="h-screen flex flex-col overflow-hidden hidden">
+        <nav class="odoo-topbar h-14 flex items-center px-6 justify-between flex-shrink-0 shadow-lg z-50 no-print">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 mr-6">
+                    <img src="https://media.licdn.com/dms/image/v2/D560BAQEPjP3aKt0lyg/company-logo_100_100/B56ZU2_QxhHEAU-/0/1740384308771/hiregrow_consultants_logo?e=1772064000&v=beta&t=jyFG8nOobovTGg8CXl__cBH3jpSI8NaWLLBb1kKivvw" class="h-7 w-7 rounded bg-white p-0.5">
+                    <span class="text-white font-extrabold text-base tracking-tight">RaveOne <span class="font-normal opacity-70">ERP</span></span>
                 </div>
-                <div class="card p-6 border-l-4 border-rose-500">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Business Expenses</div>
-                    <div class="text-2xl font-black text-slate-800" id="stat-expenses">₹ 0</div>
-                </div>
-                <div class="card p-6 border-l-4 border-amber-500">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">TDS Receivable Asset</div>
-                    <div class="text-2xl font-black text-slate-800" id="stat-tds-receivable">₹ 0</div>
-                </div>
-                <div class="card p-6 border-l-4 border-indigo-500">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Net Operating Profit</div>
-                    <div class="text-2xl font-black text-slate-800" id="stat-profit">₹ 0</div>
+                <div class="flex items-center gap-1">
+                    <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-link active">Dashboard</button>
+                    <button onclick="switchView('quotes')" id="nav-quotes" class="nav-link">Quotations</button>
+                    <button onclick="switchView('income')" id="nav-income" class="nav-link">Sales</button>
+                    <button onclick="switchView('expenses')" id="nav-expenses" class="nav-link">Purchases</button>
+                    <button onclick="switchView('contacts')" id="nav-contacts" class="nav-link">Contacts</button>
+                    <button onclick="switchView('budgets')" id="nav-budgets" class="nav-link">Budgeting</button>
+                    <button onclick="switchView('reporting')" id="nav-reporting" class="nav-link">Reports</button>
                 </div>
             </div>
+            <div class="flex items-center gap-3">
+                <button onclick="logout()" title="Logout" class="text-purple-200 hover:text-white transition mr-2"><i class="fas fa-power-off text-sm"></i></button>
+                <button onclick="fetchData()" title="Sync" class="text-purple-200 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
+                <button onclick="switchView('form-income')" class="odoo-btn">+ Create</button>
+            </div>
+        </nav>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 card p-8">
-                    <h3 class="font-bold text-slate-700 mb-6 flex justify-between items-center">
-                        <span>Revenue Breakdown</span>
-                        <span class="text-[10px] bg-indigo-50 px-2 py-1 rounded text-indigo-500 font-bold uppercase">Segmented Analysis</span>
-                    </h3>
-                    <div id="vertical-bars" class="space-y-6"></div>
+        <div class="bg-white border-b h-10 flex items-center px-8 justify-between shadow-sm flex-shrink-0 no-print">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest" id="page-title">Business Command Center</div>
+            <div id="report-controls" class="hidden flex gap-6">
+                <button onclick="renderReports('pl')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Profit & Loss</button>
+                <button onclick="renderReports('bs')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Balance Sheet</button>
+                <button onclick="renderReports('cf')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Cash Flow</button>
+                <button onclick="renderReports('aging')" class="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase border-b-2 border-transparent hover:border-indigo-600 pb-1">Aging Report</button>
+            </div>
+            <div id="contact-controls" class="hidden flex gap-4">
+                <button onclick="openContactModal()" class="text-[10px] font-black text-indigo-600 uppercase">+ New Contact</button>
+            </div>
+        </div>
+
+        <main id="viewport" class="flex-1 overflow-y-auto p-6 lg:p-10 no-print">
+            
+            <!-- DASHBOARD VIEW -->
+            <div id="view-dashboard" class="space-y-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="card p-6 border-l-4 border-emerald-500">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Gross Inflow (Confirmed)</div>
+                        <div class="text-2xl font-black text-slate-800" id="stat-income">₹ 0</div>
+                    </div>
+                    <div class="card p-6 border-l-4 border-rose-500">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Business Expenses</div>
+                        <div class="text-2xl font-black text-slate-800" id="stat-expenses">₹ 0</div>
+                    </div>
+                    <div class="card p-6 border-l-4 border-amber-500">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">TDS Receivable Asset</div>
+                        <div class="text-2xl font-black text-slate-800" id="stat-tds-receivable">₹ 0</div>
+                    </div>
+                    <div class="card p-6 border-l-4 border-indigo-500">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Net Operating Profit</div>
+                        <div class="text-2xl font-black text-slate-800" id="stat-profit">₹ 0</div>
+                    </div>
                 </div>
-                <div class="card p-8 bg-slate-900 text-white">
-                    <h3 class="font-bold text-indigo-400 mb-6 border-b border-slate-700 pb-4 uppercase tracking-widest text-xs">Tax Compliance Projection</h3>
-                    <div class="space-y-6">
-                        <div>
-                            <div class="text-[10px] text-slate-500 uppercase font-black mb-1">Total TDS Claimable</div>
-                            <div class="text-3xl font-black" id="tax-projection">₹ 0</div>
-                        </div>
-                        <div class="p-4 bg-slate-800 rounded-lg border border-slate-700">
-                            <p class="text-[10px] text-slate-300 leading-relaxed font-medium">
-                                <i class="fas fa-info-circle mr-2 text-indigo-400"></i>
-                                Calculated @ 10% for professional services bracket (< 20 LPA). This asset offsets your year-end Income Tax liability.
-                            </p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 card p-8">
+                        <h3 class="font-bold text-slate-700 mb-6 flex justify-between items-center">
+                            <span>Revenue Breakdown by Vertical</span>
+                            <span class="text-[10px] bg-indigo-50 px-2 py-1 rounded text-indigo-500 font-bold uppercase">Vertical Analysis</span>
+                        </h3>
+                        <div id="vertical-bars" class="space-y-6"></div>
+                    </div>
+                    <div class="card p-8 bg-slate-900 text-white">
+                        <h3 class="font-bold text-indigo-400 mb-6 border-b border-slate-700 pb-4 uppercase tracking-widest text-xs">Tax Asset Summary</h3>
+                        <div class="space-y-6">
+                            <div>
+                                <div class="text-[10px] text-slate-500 uppercase font-black mb-1">Total TDS to Claim</div>
+                                <div class="text-3xl font-black" id="tax-projection">₹ 0</div>
+                            </div>
+                            <div class="p-4 bg-slate-800 rounded-lg border border-slate-700">
+                                <p class="text-[10px] text-slate-300 leading-relaxed font-medium">
+                                    <i class="fas fa-info-circle mr-2 text-indigo-400"></i>
+                                    TDS is automatically calculated at 10% for professional services. Ensure Form 26AS reconciliation at quarter-end.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- BUDGETING VIEW -->
-        <div id="view-budgets" class="hidden space-y-6 max-w-6xl mx-auto">
-            <div class="flex justify-between items-center bg-white p-6 rounded-lg border shadow-sm">
-                <div>
-                    <h2 class="text-xl font-extrabold text-slate-800 uppercase tracking-tight">Budget Variance Master</h2>
-                    <p class="text-xs text-slate-500">Monthly Targets vs. Real-time Vertical Performance</p>
+            <!-- BUDGETING VIEW -->
+            <div id="view-budgets" class="hidden space-y-6 max-w-6xl mx-auto">
+                <div class="flex justify-between items-center bg-white p-6 rounded-lg border shadow-sm">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800 uppercase tracking-tight">Budget vs Actuals</h2>
+                        <p class="text-xs text-slate-500">Performance tracking against targets</p>
+                    </div>
+                </div>
+                <div class="card overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="report-header">
+                            <tr>
+                                <th class="px-6 py-4">Vertical</th>
+                                <th class="px-6 py-4 text-right">Target Rev.</th>
+                                <th class="px-6 py-4 text-right">Actual Rev.</th>
+                                <th class="px-6 py-4 text-right">Var %</th>
+                                <th class="px-6 py-4 text-right">Target Exp.</th>
+                                <th class="px-6 py-4 text-right">Actual Exp.</th>
+                                <th class="px-6 py-4 text-right">Var %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budget-table-body" class="divide-y report-table"></tbody>
+                    </table>
                 </div>
             </div>
-            <div class="card overflow-hidden">
-                <table class="w-full text-left text-xs">
-                    <thead class="report-header">
-                        <tr>
-                            <th class="px-6 py-4">Vertical</th>
-                            <th class="px-6 py-4 text-right">Target Rev.</th>
-                            <th class="px-6 py-4 text-right">Actual Rev.</th>
-                            <th class="px-6 py-4 text-right">Rev. Var (%)</th>
-                            <th class="px-6 py-4 text-right">Target Exp.</th>
-                            <th class="px-6 py-4 text-right">Actual Exp.</th>
-                            <th class="px-6 py-4 text-right">Exp. Var (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="budget-table-body" class="divide-y report-table">
-                        <!-- Budget rows injected here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <!-- FORM ENTRY -->
-        <div id="view-form" class="hidden max-w-3xl mx-auto card shadow-2xl overflow-hidden">
-            <div class="bg-slate-50 px-8 py-5 border-b flex justify-between items-center">
-                <h2 class="font-extrabold text-slate-800 text-lg" id="form-title">New Entry</h2>
-                <div class="flex bg-slate-200 p-1 rounded-lg">
-                    <button onclick="setFormType('income')" id="type-inc" class="px-4 py-1.5 text-[10px] font-bold rounded-md bg-white shadow-sm transition-all">INCOME</button>
-                    <button onclick="setFormType('expense')" id="type-exp" class="px-4 py-1.5 text-[10px] font-bold rounded-md text-slate-600 transition-all">PURCHASE</button>
+            <!-- FORM ENTRY -->
+            <div id="view-form" class="hidden max-w-3xl mx-auto card shadow-2xl overflow-hidden">
+                <div class="bg-slate-50 px-8 py-5 border-b flex justify-between items-center">
+                    <h2 class="font-extrabold text-slate-800 text-lg" id="form-title">New Entry</h2>
+                    <div class="flex bg-slate-200 p-1 rounded-lg">
+                        <button onclick="setFormType('income')" id="type-inc" class="px-4 py-1.5 text-[10px] font-bold rounded-md bg-white shadow-sm transition-all">INCOME</button>
+                        <button onclick="setFormType('expense')" id="type-exp" class="px-4 py-1.5 text-[10px] font-bold rounded-md text-slate-600 transition-all">PURCHASE</button>
+                    </div>
                 </div>
-            </div>
-            <form id="erpForm" class="p-8 space-y-6">
-                <input type="hidden" name="type" id="input-type" value="income">
-                <div class="grid grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Business Vertical</label>
-                            <select name="verticalId" class="w-full border-b-2 border-slate-100 py-2 focus:border-indigo-500 outline-none text-sm font-semibold">
-                                <option value="V01">RaveOne Academy</option>
-                                <option value="V02">RaveOne Recruitment</option>
-                                <option value="V03">RaveOne Consulting</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Contact Master</label>
-                            <select name="name" id="contact-select" onchange="autoFillContact(this.value)" class="w-full border-b-2 border-slate-100 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700">
-                                <option value="">Select Customer/Vendor...</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
+                <form id="erpForm" class="p-8 space-y-6">
+                    <input type="hidden" name="type" id="input-type" value="income">
+                    <div class="grid grid-cols-2 gap-8">
+                        <div class="space-y-4">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">HSN/SAC</label>
-                                <input type="text" name="hsn" placeholder="9983" class="w-full border-b-2 border-slate-100 py-2 outline-none text-xs">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tax Rate (%)</label>
-                                <select name="taxRate" class="w-full border-b-2 border-slate-100 py-2 outline-none text-xs font-bold">
-                                    <option value="18">18%</option><option value="12">12%</option><option value="5">5%</option><option value="0">0%</option>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Vertical</label>
+                                <select name="verticalId" class="w-full border-b-2 border-slate-100 py-2 focus:border-indigo-500 outline-none text-sm font-semibold">
+                                    <option value="V01">RaveOne Academy</option>
+                                    <option value="V02">Raveone Consultants</option>
+                                    <option value="V03">RaveOne Consulting</option>
                                 </select>
                             </div>
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-4 bg-amber-50 p-3 rounded border border-amber-100 mb-2">
-                            <input type="checkbox" id="apply-tds" name="applyTDS" value="true" checked class="w-4 h-4">
-                            <label for="apply-tds" class="text-xs font-bold text-amber-800">Apply 10% TDS Deduction</label>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">GST Details</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="form-gstNo" name="gstNo" placeholder="GSTIN" class="w-2/3 border-b-2 py-2 outline-none text-xs bg-slate-50" readonly>
-                                <input type="text" id="form-pos" name="placeOfSupply" placeholder="POS" class="w-1/3 border-b-2 py-2 outline-none text-xs bg-slate-50" readonly>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Entity Name</label>
+                                <select name="name" id="contact-select" onchange="autoFillContact(this.value)" class="w-full border-b-2 border-slate-100 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700">
+                                    <option value="">Select Partner...</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">SAC Code</label>
+                                    <input type="text" name="hsn" placeholder="9983" class="w-full border-b-2 border-slate-100 py-2 outline-none text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">GST Rate %</label>
+                                    <select name="taxRate" class="w-full border-b-2 border-slate-100 py-2 outline-none text-xs font-bold">
+                                        <option value="18">18%</option><option value="12">12%</option><option value="5">5%</option><option value="0">0%</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Base Amount (Net)</label>
-                            <div class="relative">
-                                <span class="absolute left-0 top-2 font-bold text-indigo-600">₹</span>
-                                <input type="number" name="amount" required step="0.01" class="w-full border-b-2 border-slate-100 py-2 pl-4 focus:border-indigo-500 outline-none text-xl font-black text-indigo-600">
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-4 bg-amber-50 p-3 rounded border border-amber-100 mb-2">
+                                <input type="checkbox" id="apply-tds" name="applyTDS" value="true" checked class="w-4 h-4">
+                                <label for="apply-tds" class="text-xs font-bold text-amber-800">Apply TDS Deduction (10%)</label>
                             </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Partner GST</label>
+                                    <input type="text" id="form-gstNo" name="gstNo" class="w-full border-b-2 py-2 outline-none text-xs bg-slate-50" readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">POS</label>
+                                    <input type="text" id="form-pos" name="placeOfSupply" class="w-full border-b-2 py-2 outline-none text-xs bg-slate-50" readonly>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Net Amount</label>
+                                <div class="relative">
+                                    <span class="absolute left-0 top-2 font-bold text-indigo-600">₹</span>
+                                    <input type="number" name="amount" required step="0.01" class="w-full border-b-2 border-slate-100 py-2 pl-4 focus:border-indigo-500 outline-none text-xl font-black text-indigo-600">
+                                </div>
+                            </div>
+                            <select name="status" id="form-status" class="w-full border-b-2 border-slate-100 py-2 outline-none text-xs font-bold">
+                                <option value="Paid">Cleared / Paid</option>
+                                <option value="Pending">Pending / Unpaid</option>
+                                <option value="Quotation">Quotation / Draft</option>
+                            </select>
                         </div>
-                        <select name="status" id="form-status" class="w-full border-b-2 border-slate-100 py-2 outline-none text-xs font-bold">
-                            <option value="Paid">Cleared / Received</option>
-                            <option value="Pending">Unpaid / Sent</option>
-                            <option value="Quotation">Draft Quotation</option>
-                        </select>
                     </div>
-                </div>
-                <div class="pt-8 flex justify-end gap-4 border-t">
-                    <button type="button" onclick="switchView('dashboard')" class="text-xs font-bold text-slate-400">Discard</button>
-                    <button type="submit" id="submitBtn" class="odoo-btn">Post Entry</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- LIST VIEWS (SALES/PURCHASES/QUOTES) -->
-        <div id="view-list" class="hidden card overflow-hidden">
-            <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 text-[10px] font-bold uppercase text-slate-400 border-b">
-                    <tr>
-                        <th class="px-6 py-4">Date</th>
-                        <th class="px-6 py-4">Reference</th>
-                        <th class="px-6 py-4">Partner</th>
-                        <th class="px-6 py-4 text-right">Taxable</th>
-                        <th class="px-6 py-4 text-right">GST</th>
-                        <th class="px-6 py-4 text-right text-rose-500 font-black">TDS (10%)</th>
-                        <th class="px-6 py-4 text-right font-black">Total</th>
-                        <th class="px-6 py-4 text-center">Status</th>
-                        <th class="px-6 py-4 text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="list-body" class="divide-y"></tbody>
-            </table>
-        </div>
-
-        <!-- REPORTING VIEW -->
-        <div id="view-reporting" class="hidden max-w-5xl mx-auto">
-            <div id="report-content" class="card p-12 min-h-[700px] shadow-xl">
-                <!-- Financial Statements rendered here -->
+                    <div class="pt-8 flex justify-end gap-4 border-t">
+                        <button type="button" onclick="switchView('dashboard')" class="text-xs font-bold text-slate-400">Cancel</button>
+                        <button type="submit" id="submitBtn" class="odoo-btn">Record Transaction</button>
+                    </div>
+                </form>
             </div>
-        </div>
 
-        <!-- CONTACTS MASTER -->
-        <div id="view-contacts" class="hidden grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+            <!-- LIST VIEW -->
+            <div id="view-list" class="hidden card overflow-hidden">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-[10px] font-bold uppercase text-slate-400 border-b">
+                        <tr>
+                            <th class="px-6 py-4">Date</th>
+                            <th class="px-6 py-4">ID</th>
+                            <th class="px-6 py-4">Partner</th>
+                            <th class="px-6 py-4 text-right">Taxable</th>
+                            <th class="px-6 py-4 text-right">GST</th>
+                            <th class="px-6 py-4 text-right text-rose-500 font-bold">TDS (10%)</th>
+                            <th class="px-6 py-4 text-right font-black">Total</th>
+                            <th class="px-6 py-4 text-center">Status</th>
+                            <th class="px-6 py-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list-body" class="divide-y"></tbody>
+                </table>
+            </div>
 
-    </main>
+            <!-- REPORTING VIEW -->
+            <div id="view-reporting" class="hidden max-w-5xl mx-auto">
+                <div id="report-content" class="card p-12 min-h-[700px] shadow-xl"></div>
+            </div>
 
-    <!-- INVOICE MODAL -->
+            <!-- CONTACTS VIEW -->
+            <div id="view-contacts" class="hidden grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+
+        </main>
+    </div>
+
+    <!-- MODALS & OVERLAYS -->
     <div id="invoice-modal" class="fixed inset-0 bg-black/60 z-[100] hidden items-center justify-center p-4">
         <div class="bg-white w-full max-w-4xl h-[95vh] rounded-2xl flex flex-col shadow-2xl relative overflow-hidden">
             <div class="p-6 border-b bg-slate-50 flex justify-between items-center no-print">
-                <span class="font-bold text-slate-600 text-xs uppercase tracking-widest">Document Preview</span>
+                <span class="font-bold text-slate-600 text-xs uppercase tracking-widest">Document View</span>
                 <div class="flex gap-2">
-                    <button onclick="window.print()" class="odoo-btn flex items-center gap-2 shadow-lg"><i class="fas fa-print text-xs"></i> Print / PDF</button>
-                    <button onclick="closeInvoice()" class="px-4 py-2 text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+                    <button onclick="window.print()" class="odoo-btn flex items-center gap-2"><i class="fas fa-print"></i> Print / PDF</button>
+                    <button onclick="closeInvoice()" class="px-4 py-2 text-slate-400"><i class="fas fa-times"></i></button>
                 </div>
             </div>
             <div id="invoice-print-area" class="flex-1 overflow-y-auto p-12 bg-white"></div>
         </div>
     </div>
 
-    <!-- CONTACT MASTER MODAL -->
     <div id="contact-modal" class="fixed inset-0 bg-black/60 z-[100] hidden items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-xl overflow-hidden shadow-2xl">
             <div class="bg-slate-800 p-4 text-white font-bold flex justify-between">
@@ -279,31 +295,54 @@
             </div>
             <form id="contactForm" class="p-6 space-y-4">
                 <select name="type" class="w-full border rounded p-2 text-sm font-bold bg-slate-50">
-                    <option value="Customer">Customer</option><option value="Vendor">Vendor/Supplier</option>
+                    <option value="Customer">Customer</option><option value="Vendor">Vendor</option>
                 </select>
                 <input type="text" name="name" required placeholder="Legal Name" class="w-full border rounded p-2 text-sm">
                 <input type="text" name="gstNo" placeholder="GSTIN" class="w-full border rounded p-2 text-sm uppercase">
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="text" name="stateCode" placeholder="POS Code (e.g. 27)" class="w-full border rounded p-2 text-sm">
+                    <input type="text" name="stateCode" placeholder="State Code (e.g. 27)" class="w-full border rounded p-2 text-sm">
                     <input type="text" name="phone" placeholder="Phone" class="w-full border rounded p-2 text-sm">
                 </div>
-                <input type="email" name="email" placeholder="Email Address" class="w-full border rounded p-2 text-sm">
-                <textarea name="address" placeholder="Registered Billing Address" class="w-full border rounded p-2 text-sm h-24"></textarea>
-                <button type="submit" class="odoo-btn w-full py-3">SAVE TO DATABASE</button>
+                <input type="email" name="email" placeholder="Email" class="w-full border rounded p-2 text-sm">
+                <textarea name="address" placeholder="Billing Address" class="w-full border rounded p-2 text-sm h-20"></textarea>
+                <button type="submit" class="odoo-btn w-full py-3">Register Contact</button>
             </form>
         </div>
     </div>
 
-    <!-- TOAST -->
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 translate-y-24 z-[100] text-xs font-bold no-print">
         <i id="toast-icon" class="fas fa-check-circle text-emerald-400"></i>
-        <span id="toast-msg">Operation Successful</span>
+        <span id="toast-msg">Action Successful</span>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxqzLah5OWm0Iin_caYoz9yZ47EcRVQqSkMYrJOHai7ZwruPN-zhaIOFq5Vct-wI-WwKA/exec"; 
+        const ACCESS_TOKEN = "RAVE2024";
         let appData = { income: [], expenses: [], budgets: [], contacts: [] };
 
+        // AUTH
+        function authenticate() {
+            if (document.getElementById('access-token').value === ACCESS_TOKEN) {
+                localStorage.setItem('rave_auth', 'true');
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                fetchData();
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function logout() { localStorage.removeItem('rave_auth'); location.reload(); }
+
+        window.onload = () => {
+            if (localStorage.getItem('rave_auth') === 'true') {
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                fetchData();
+            }
+        };
+
+        // DATA
         async function fetchData() {
             try {
                 const res = await fetch(API_URL);
@@ -312,166 +351,40 @@
                     appData = result;
                     updateUI();
                 }
-            } catch (e) { console.error("Sync Error:", e); }
+            } catch (e) { showToast("Sync Error", 'error'); }
         }
 
-        function loadDemoData() {
-            appData = {
-                income: [
-                    { Date: "2024-05-01", TransactionID: "INV-1001", VerticalID: "V01", EntityName: "Aditi Sharma", GSTIN: "", PlaceofSupply: "27", HSNSAC: "9992", TaxRate: 18, TaxableValue: 25000, CGST: 2250, SGST: 2250, IGST: 0, TDS10: 2500, Total: 29500, Status: "Paid" },
-                    { Date: "2024-05-05", TransactionID: "INV-1002", VerticalID: "V02", EntityName: "Tech Mahindra Ltd", GSTIN: "27AAACT1234F1Z1", PlaceofSupply: "27", HSNSAC: "9983", TaxRate: 18, TaxableValue: 450000, CGST: 40500, SGST: 40500, IGST: 0, TDS10: 45000, Total: 531000, Status: "Pending" },
-                    { Date: "2024-05-20", TransactionID: "QT-2001", VerticalID: "V03", EntityName: "Global SaaS Corp", GSTIN: "07AABCG5566R1ZV", PlaceofSupply: "07", HSNSAC: "9983", TaxRate: 12, TaxableValue: 150000, CGST: 0, SGST: 0, IGST: 18000, TDS10: 15000, Total: 168000, Status: "Quotation" }
-                ],
-                expenses: [
-                    { Date: "2024-05-02", ExpenseID: "EXP-5001", VerticalID: "V01", VendorName: "AWS Cloud", VendorGST: "", PlaceofSupply: "27", HSNSAC: "9983", TaxRate: 18, TaxableValue: 12000, CGST: 1080, SGST: 1080, IGST: 0, Total: 14160, Category: "Cloud Hosting", Status: "Paid" }
-                ],
-                budgets: [
-                    { VerticalID: "V01", TargetRevenue: 500000, TargetExpense: 150000 },
-                    { VerticalID: "V02", TargetRevenue: 1200000, TargetExpense: 400000 },
-                    { VerticalID: "V03", TargetRevenue: 400000, TargetExpense: 80000 }
-                ],
-                contacts: [
-                    { ID: "C001", Type: "Customer", Name: "Tech Mahindra Ltd", GSTIN: "27AAACT1234F1Z1", StateCode: "27", Email: "finance@techm.com", Address: "Hinjewadi, Pune, MH" },
-                    { ID: "C002", Type: "Customer", Name: "Aditi Sharma", GSTIN: "", StateCode: "27", Email: "aditi@gmail.com", Address: "Yelahanka, Bengaluru" }
-                ]
-            };
-            showToast("Demo Environment: Full Professional Suite Active");
-            updateUI();
-        }
+        const verticalNames = { V01: 'RaveOne Academy', V02: 'Raveone Consultants', V03: 'RaveOne Consulting' };
 
         function updateUI() {
-            const confirmedSales = appData.income.filter(r => r.Status !== 'Quotation');
-            const inc = confirmedSales.reduce((s,r) => s + Number(r.TaxableValue), 0);
-            const tdsRec = confirmedSales.reduce((s,r) => s + Number(r.TDS10), 0);
+            const confirmed = appData.income.filter(r => r.Status !== 'Quotation');
+            const inc = confirmed.reduce((s,r) => s + Number(r.TaxableValue), 0);
+            const tds = confirmed.reduce((s,r) => s + Number(r.TDS10), 0);
             const exp = appData.expenses.reduce((s,r) => s + Number(r.TaxableValue), 0);
 
             document.getElementById('stat-income').innerText = `₹ ${inc.toLocaleString('en-IN')}`;
             document.getElementById('stat-expenses').innerText = `₹ ${exp.toLocaleString('en-IN')}`;
-            document.getElementById('stat-tds-receivable').innerText = `₹ ${tdsRec.toLocaleString('en-IN')}`;
+            document.getElementById('stat-tds-receivable').innerText = `₹ ${tds.toLocaleString('en-IN')}`;
             document.getElementById('stat-profit').innerText = `₹ ${(inc - exp).toLocaleString('en-IN')}`;
-            document.getElementById('tax-projection').innerText = `₹ ${tdsRec.toLocaleString('en-IN')}`;
+            document.getElementById('tax-projection').innerText = `₹ ${tds.toLocaleString('en-IN')}`;
             
-            // Vertical Distribution
-            const vNames = { V01: 'Academy', V02: 'Recruitment', V03: 'Consulting' };
             const vTotals = { V01: 0, V02: 0, V03: 0 };
-            confirmedSales.forEach(r => vTotals[r.VerticalID] += Number(r.TaxableValue));
+            confirmed.forEach(r => vTotals[r.VerticalID] += Number(r.TaxableValue));
             const max = Math.max(...Object.values(vTotals), 1);
             document.getElementById('vertical-bars').innerHTML = Object.entries(vTotals).map(([id, val]) => `
                 <div>
-                    <div class="flex justify-between text-[11px] font-bold mb-2">
-                        <span class="text-slate-500 uppercase tracking-widest">${vNames[id]}</span>
-                        <span class="text-indigo-600 font-black">₹ ${val.toLocaleString('en-IN')}</span>
+                    <div class="flex justify-between text-[11px] font-bold mb-2 uppercase">
+                        <span class="text-slate-500 tracking-widest">${verticalNames[id]}</span>
+                        <span class="text-indigo-600">₹ ${val.toLocaleString('en-IN')}</span>
                     </div>
                     <div class="w-full bg-slate-100 rounded-full h-2">
-                        <div class="bg-indigo-600 h-2 rounded-full transition-all duration-1000 shadow" style="width: ${(val/max)*100}%"></div>
+                        <div class="bg-indigo-600 h-2 rounded-full shadow" style="width: ${(val/max)*100}%"></div>
                     </div>
                 </div>
             `).join('');
         }
 
-        function renderBudgets() {
-            const body = document.getElementById('budget-table-body');
-            const vNames = { V01: 'RaveOne Academy', V02: 'RaveOne Recruitment', V03: 'RaveOne Consulting' };
-            
-            body.innerHTML = appData.budgets.map(b => {
-                const actualRev = appData.income.filter(r => r.VerticalID === b.VerticalID && r.Status !== 'Quotation').reduce((s,r) => s + Number(r.TaxableValue), 0);
-                const actualExp = appData.expenses.filter(r => r.VerticalID === b.VerticalID).reduce((s,r) => s + Number(r.TaxableValue), 0);
-                const revVar = ((actualRev - b.TargetRevenue) / b.TargetRevenue) * 100;
-                const expVar = ((actualExp - b.TargetExpense) / b.TargetExpense) * 100;
-
-                return `
-                    <tr class="hover:bg-slate-50 transition font-medium">
-                        <td class="px-6 py-4 font-black text-slate-800">${vNames[b.VerticalID]}</td>
-                        <td class="px-6 py-4 text-right">₹ ${Number(b.TargetRevenue).toLocaleString()}</td>
-                        <td class="px-6 py-4 text-right font-bold text-indigo-600">₹ ${actualRev.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-right ${revVar >= 0 ? 'text-emerald-600' : 'text-rose-600'} font-black">${revVar.toFixed(1)}%</td>
-                        <td class="px-6 py-4 text-right">₹ ${Number(b.TargetExpense).toLocaleString()}</td>
-                        <td class="px-6 py-4 text-right font-bold text-slate-700">₹ ${actualExp.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-right ${expVar <= 0 ? 'text-emerald-600' : 'text-rose-600'} font-black">${expVar.toFixed(1)}%</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderReports(type) {
-            const content = document.getElementById('report-content');
-            const confirmedSales = appData.income.filter(r => r.Status !== 'Quotation');
-            const inc = confirmedSales.reduce((s,r) => s + Number(r.TaxableValue), 0);
-            const exp = appData.expenses.reduce((s,r) => s + Number(r.TaxableValue), 0);
-            const outGst = confirmedSales.reduce((s,r) => s + Number(r.CGST) + Number(r.SGST) + Number(r.IGST), 0);
-            const inGst = appData.expenses.reduce((s,r) => s + Number(r.CGST) + Number(r.SGST) + Number(r.IGST), 0);
-            const tdsRec = confirmedSales.reduce((s,r) => s + Number(r.TDS10), 0);
-
-            if(type === 'pl') {
-                content.innerHTML = `
-                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black text-slate-900">Profit & Loss Statement</h2><p class="text-slate-400 font-bold uppercase tracking-widest mt-1 text-[10px]">Segmented Performance Report</p></div>
-                    <table class="w-full text-sm">
-                        <tr class="report-header"><th class="px-4 py-3 text-left">Description</th><th class="px-4 py-3 text-right">Amount (₹)</th></tr>
-                        <tr><td class="px-4 py-4 font-black text-indigo-600 uppercase tracking-widest text-[10px]">Operating Revenue</td><td></td></tr>
-                        <tr><td class="px-8 py-2">Academy (B2C Training)</td><td class="text-right">₹ ${confirmedSales.filter(r=>r.VerticalID==='V01').reduce((s,r)=>s+Number(r.TaxableValue), 0).toLocaleString()}</td></tr>
-                        <tr><td class="px-8 py-2">Recruitment (B2B Success Fees)</td><td class="text-right">₹ ${confirmedSales.filter(r=>r.VerticalID==='V02').reduce((s,r)=>s+Number(r.TaxableValue), 0).toLocaleString()}</td></tr>
-                        <tr><td class="px-8 py-2">Consulting (Retainers)</td><td class="text-right">₹ ${confirmedSales.filter(r=>r.VerticalID==='V03').reduce((s,r)=>s+Number(r.TaxableValue), 0).toLocaleString()}</td></tr>
-                        <tr class="report-subtotal"><td class="px-4 py-3 uppercase">Total Gross Sales</td><td class="text-right">₹ ${inc.toLocaleString()}</td></tr>
-                        
-                        <tr><td class="px-4 py-4 font-black text-rose-600 uppercase tracking-widest text-[10px] pt-8">Operating Expenses</td><td></td></tr>
-                        <tr><td class="px-8 py-2">Direct Vertical Purchases</td><td class="text-right">₹ ${exp.toLocaleString()}</td></tr>
-                        <tr class="report-subtotal"><td class="px-4 py-3 uppercase">Total Direct Costs</td><td class="text-right">₹ ${exp.toLocaleString()}</td></tr>
-                        
-                        <tr class="bg-slate-900 text-white font-black"><td class="px-4 py-5 text-lg uppercase tracking-tight">Net Business Margin</td><td class="text-right text-xl text-emerald-400">₹ ${(inc - exp).toLocaleString()}</td></tr>
-                    </table>
-                `;
-            } else if (type === 'bs') {
-                content.innerHTML = `
-                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black">Provisional Balance Sheet</h2></div>
-                    <div class="grid grid-cols-2 gap-16">
-                        <div class="space-y-6">
-                            <h4 class="border-b-4 border-emerald-500 font-black uppercase text-[10px] pb-2 tracking-widest">Assets (What you Own)</h4>
-                            <div class="flex justify-between text-xs py-2 border-b"><span>Estimated Cash Flow Position</span><span class="font-bold">₹ ${(inc-exp+outGst-inGst-tdsRec).toLocaleString()}</span></div>
-                            <div class="flex justify-between text-xs py-2 border-b"><span>TDS Receivable Asset (10% claimed)</span><span class="font-bold text-indigo-600">₹ ${tdsRec.toLocaleString()}</span></div>
-                            <div class="flex justify-between text-xs py-2 border-b"><span>GST Input Credit (ITC)</span><span class="font-bold">₹ ${inGst.toLocaleString()}</span></div>
-                            <div class="flex justify-between font-black text-sm pt-4 border-t-2 border-slate-900"><span>TOTAL ASSETS</span><span>₹ ${(inc - exp + outGst).toLocaleString()}</span></div>
-                        </div>
-                        <div class="space-y-6">
-                            <h4 class="border-b-4 border-rose-500 font-black uppercase text-[10px] pb-2 tracking-widest">Liabilities & Equity</h4>
-                            <div class="flex justify-between text-xs py-2 border-b"><span>GST Output Payable</span><span class="font-bold text-rose-600">₹ ${outGst.toLocaleString()}</span></div>
-                            <div class="flex justify-between text-xs py-2 border-b"><span>Accumulated Surplus (Equity)</span><span class="font-bold text-slate-800">₹ ${(inc-exp).toLocaleString()}</span></div>
-                            <div class="flex justify-between font-black text-sm pt-4 border-t-2 border-slate-900"><span>TOTAL LIABILITIES</span><span>₹ ${(inc - exp + outGst).toLocaleString()}</span></div>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'cf') {
-                content.innerHTML = `
-                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black">Cashflow Statement</h2><p class="text-slate-400 font-bold uppercase tracking-widest mt-1 text-[10px]">Operational Inflow/Outflow Analysis</p></div>
-                    <div class="space-y-6">
-                        <div class="p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
-                            <h4 class="text-[10px] font-black text-emerald-600 uppercase mb-4 tracking-widest">A. Cash Inflow from Sales</h4>
-                            <div class="flex justify-between text-sm py-2"><span>Customer Collections (Gross + GST)</span><span class="font-bold">₹ ${(inc + outGst).toLocaleString()}</span></div>
-                            <div class="flex justify-between text-sm py-2 text-rose-600 italic"><span>Less: TDS Deductions by Clients</span><span class="font-bold">- ₹ ${tdsRec.toLocaleString()}</span></div>
-                            <div class="flex justify-between font-black pt-2 border-t text-emerald-800 uppercase text-[10px]"><span>Net Cash from Sales</span><span>₹ ${(inc + outGst - tdsRec).toLocaleString()}</span></div>
-                        </div>
-                        <div class="p-6 bg-rose-50 rounded-2xl border border-rose-100">
-                            <h4 class="text-[10px] font-black text-rose-600 uppercase mb-4 tracking-widest">B. Cash Outflow (Expenses)</h4>
-                            <div class="flex justify-between text-sm py-2 font-bold text-rose-800"><span>Vendor Payments (Net + Tax)</span><span>₹ ${(exp + inGst).toLocaleString()}</span></div>
-                        </div>
-                        <div class="bg-slate-900 text-white p-10 rounded-3xl flex justify-between items-center shadow-2xl">
-                            <span class="text-xl font-black uppercase tracking-tighter">Net Change in Liquidity</span>
-                            <span class="text-4xl font-black text-indigo-400">₹ ${(inc + outGst - tdsRec - (exp + inGst)).toLocaleString()}</span>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'aging') {
-                const pending = confirmedSales.filter(r => r.Status === 'Pending');
-                content.innerHTML = `
-                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black">Accounts Receivable Aging</h2></div>
-                    <table class="w-full text-xs">
-                        <thead class="report-header"><tr><th class="px-6 py-4">Partner Entity</th><th class="px-6 py-4 text-right">0-30 Days</th><th class="px-6 py-4 text-right">31-60 Days</th><th class="px-6 py-4 text-right">61+ Days</th><th class="px-6 py-4 text-right font-black">Total Owed</th></tr></thead>
-                        <tbody class="divide-y">${pending.map(p => `<tr><td class="px-6 py-4 font-black text-slate-800 uppercase tracking-tighter">${p.EntityName}</td><td class="text-right px-6 font-bold text-emerald-600">₹ ${p.Total.toLocaleString()}</td><td class="text-right px-6 text-slate-300">-</td><td class="text-right px-6 text-slate-300">-</td><td class="text-right px-6 font-black text-slate-900 border-l">₹ ${p.Total.toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="5" class="p-10 text-center text-slate-300 italic font-bold">ALL BALANCES RECONCILED</td></tr>'}</tbody>
-                        <tfoot class="bg-slate-50 font-black"><tr><td class="px-6 py-4">CONSOLIDATED AR</td><td colspan="4" class="text-right px-6 text-indigo-600 text-lg">₹ ${pending.reduce((s,r)=>s+Number(r.Total), 0).toLocaleString()}</td></tr></tfoot>
-                    </table>
-                `;
-            }
-        }
-
+        // VIEW HANDLING
         function switchView(view) {
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             document.querySelectorAll('#viewport > div').forEach(v => v.classList.add('hidden'));
@@ -480,26 +393,24 @@
             
             if(view.startsWith('form')) {
                 document.getElementById('view-form').classList.remove('hidden');
-                document.getElementById('page-title').innerText = "New Transaction";
+                document.getElementById('page-title').innerText = "Voucher Entry";
                 populateContactSelect();
             } else if (view === 'budgets') {
                 document.getElementById('view-budgets').classList.remove('hidden');
                 document.getElementById('nav-budgets').classList.add('active');
-                document.getElementById('page-title').innerText = "Performance Target Variance";
+                document.getElementById('page-title').innerText = "Budget Tracking";
                 renderBudgets();
             } else if (view === 'quotes') {
                 document.getElementById('view-list').classList.remove('hidden');
                 document.getElementById('nav-quotes').classList.add('active');
-                document.getElementById('page-title').innerText = "Proposals & Quotations";
+                document.getElementById('page-title').innerText = "Quotations & Proposals";
                 renderList('quotes');
-            } else if (['income', 'expenses', 'tax', 'reporting', 'contacts'].includes(view)) {
+            } else if (['income', 'expenses', 'reporting', 'contacts'].includes(view)) {
                 const targetView = ['income','expenses'].includes(view) ? 'list' : view;
                 document.getElementById(`view-${targetView}`).classList.remove('hidden');
                 document.getElementById(`nav-${view}`).classList.add('active');
                 document.getElementById('page-title').innerText = view.toUpperCase();
-                
                 if(view === 'income' || view === 'expenses') renderList(view);
-                if(view === 'tax') renderTax();
                 if(view === 'contacts') {
                     document.getElementById('contact-controls').classList.remove('hidden');
                     renderContacts();
@@ -511,11 +422,11 @@
             } else {
                 document.getElementById('view-dashboard').classList.remove('hidden');
                 document.getElementById('nav-dashboard').classList.add('active');
-                document.getElementById('page-title').innerText = "Business Command Center";
                 updateUI();
             }
         }
 
+        // INVOICE GEN
         function openInvoice(id) {
             const data = [...appData.income, ...appData.expenses];
             const inv = data.find(r => (r.TransactionID || r.ExpenseID) === id);
@@ -524,112 +435,150 @@
 
             const modal = document.getElementById('invoice-modal');
             const area = document.getElementById('invoice-print-area');
-            const vName = inv.VerticalID === 'V01' ? 'RaveOne Academy' : inv.VerticalID === 'V02' ? 'RaveOne Recruitment' : 'RaveOne Consulting';
+            const vName = verticalNames[inv.VerticalID];
             const isQuote = inv.Status === 'Quotation';
+            const posText = inv.PlaceofSupply === "27" ? "Karnataka" : inv.PlaceofSupply;
             
             area.innerHTML = `
                 <div class="flex justify-between items-start border-b-4 border-slate-900 pb-8 mb-8">
-                    <div class="space-y-3">
-                        <img src="https://media.licdn.com/dms/image/v2/D560BAQEPjP3aKt0lyg/company-logo_100_100/B56ZU2_QxhHEAU-/0/1740384308771/hiregrow_consultants_logo?e=1772064000&v=beta&t=jyFG8nOobovTGg8CXl__cBH3jpSI8NaWLLBb1kKivvw" class="h-16 w-16">
-                        <div>
-                            <h1 class="text-2xl font-black text-slate-800 uppercase">${vName}</h1>
-                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
-                                Bagalur Cross, Yelahanka, Bengaluru 560063<br>
-                                GSTIN: 27RAVEO1234K1Z5 | www.raveone.in
-                            </p>
-                        </div>
+                    <div>
+                        <img src="https://media.licdn.com/dms/image/v2/D560BAQEPjP3aKt0lyg/company-logo_100_100/B56ZU2_QxhHEAU-/0/1740384308771/hiregrow_consultants_logo?e=1772064000&v=beta&t=jyFG8nOobovTGg8CXl__cBH3jpSI8NaWLLBb1kKivvw" class="h-16 w-16 mb-4">
+                        <h1 class="text-2xl font-black text-slate-800 uppercase">${vName}</h1>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
+                            32, 3rd Main, Vinayaka Layout 2nd Stage,<br>
+                            Nagarbhavi 9th Block, Bangalore - 560072<br>
+                            Phone: 9148330565 | Email: rajesh@raveone.in<br>
+                            GSTIN: Not applicable - 10% TDS | www.raveone.in
+                        </p>
                     </div>
                     <div class="text-right">
-                        <h2 class="text-4xl font-black text-slate-200 tracking-tighter mb-4">${isQuote ? 'PRO-FORMA / QUOTE' : 'TAX INVOICE'}</h2>
+                        <h2 class="text-4xl font-black text-slate-200 mb-4">${isQuote ? 'PRO-FORMA' : 'TAX INVOICE'}</h2>
                         <div class="text-[10px] font-black space-y-1 uppercase">
-                            <div>REFERENCE #: <span class="text-slate-900">${inv.TransactionID || inv.ExpenseID}</span></div>
-                            <div>DATED: <span class="text-slate-900">${inv.Date}</span></div>
-                            <div>PLACE OF SUPPLY: <span class="text-slate-900">${inv.PlaceofSupply}</span></div>
+                            <div>Invoice #: <span class="text-slate-900">${inv.TransactionID || inv.ExpenseID}</span></div>
+                            <div>Date: <span class="text-slate-900">${inv.Date}</span></div>
+                            <div>Place of Supply: <span class="text-slate-900">${posText}</span></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-10 mb-10">
                     <div class="border-l-4 border-indigo-600 pl-4">
-                        <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Billing Address</h3>
+                        <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Billed To</h3>
                         <div class="text-lg font-black text-slate-800 uppercase">${inv.EntityName || inv.VendorName}</div>
-                        <div class="text-xs text-slate-500 font-medium leading-relaxed">
-                            ${contact ? contact.Address : 'Registered Address Not Provided'}<br>
-                            ${(inv.GSTIN || inv.VendorGST) ? '<span class="font-bold text-slate-700">GSTIN: ' + (inv.GSTIN || inv.VendorGST) + '</span>' : 'Unregistered Consumer'}
+                        <div class="text-xs text-slate-500 font-medium">
+                            ${contact ? contact.Address : 'Address Details Missing'}<br>
+                            ${(inv.GSTIN || inv.VendorGST) ? 'GSTIN: ' + (inv.GSTIN || inv.VendorGST) : 'Unregistered'}
                         </div>
                     </div>
                     <div class="bg-slate-50 p-6 rounded-xl border border-slate-100">
-                        <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Remittance (NEFT/IMPS)</h3>
-                        <div class="text-xs space-y-1.5 font-bold">
-                            <div class="flex justify-between"><span>A/C Holder:</span> <span class="text-indigo-700">RAJESH K RAO</span></div>
-                            <div class="flex justify-between"><span>A/C No:</span> <span class="text-indigo-700 font-black">50100232976591</span></div>
-                            <div class="flex justify-between"><span>Bank:</span> <span class="text-slate-900 uppercase">HDFC Bank, Bagalur Cross</span></div>
-                            <div class="flex justify-between"><span>IFSC:</span> <span class="text-indigo-700 font-black">HDFC0004082</span></div>
+                        <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Bank Details</h3>
+                        <div class="text-xs space-y-1 font-bold">
+                            <div class="flex justify-between"><span>Holder:</span> <span>RAJESH K RAO</span></div>
+                            <div class="flex justify-between"><span>A/C No:</span> <span>50100232976591</span></div>
+                            <div class="flex justify-between"><span>Bank:</span> <span>HDFC Bank, Bagalur Cross</span></div>
+                            <div class="flex justify-between"><span>IFSC:</span> <span>HDFC0004082</span></div>
                         </div>
                     </div>
                 </div>
 
                 <table class="w-full mb-10 border-collapse">
-                    <thead><tr class="bg-slate-900 text-white"><th class="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest">Service Description</th><th class="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">SAC</th><th class="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest">Taxable Value</th></tr></thead>
+                    <thead class="bg-slate-900 text-white text-[10px] uppercase font-black tracking-widest">
+                        <tr><th class="px-6 py-4 text-left">Description</th><th class="px-6 py-4 text-right">Taxable</th></tr>
+                    </thead>
                     <tbody class="divide-y border-b-2 border-slate-900">
                         <tr>
-                            <td class="px-6 py-10">
-                                <div class="font-black text-slate-800 text-base uppercase tracking-tight">${inv.VerticalID === 'V01' ? 'Educational & Training Services' : 'Professional Consultancy Fees'}</div>
-                                <div class="text-[9px] text-slate-400 font-bold uppercase mt-1">Rendered under Business Vertical: ${vName}</div>
+                            <td class="px-6 py-10 font-black text-slate-800 uppercase">
+                                ${inv.VerticalID === 'V01' ? 'Training & Skill Development' : 'Professional Consultancy Services'}
+                                <div class="text-[8px] text-slate-400 mt-1">Vertical: ${vName} | SAC: ${inv.HSNSAC || '9983'}</div>
                             </td>
-                            <td class="px-6 py-10 text-center font-bold text-slate-500">${inv.HSNSAC || '9983'}</td>
-                            <td class="px-6 py-10 text-right font-black text-slate-800 text-lg">₹ ${Number(inv.TaxableValue).toLocaleString('en-IN')}</td>
+                            <td class="px-6 py-10 text-right font-black text-slate-800 text-lg">₹ ${Number(inv.TaxableValue).toLocaleString()}</td>
                         </tr>
                     </tbody>
                 </table>
 
                 <div class="flex justify-end mb-16">
                     <div class="w-full max-w-xs space-y-3 bg-slate-50 p-6 rounded-2xl border">
-                        <div class="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-tighter"><span>Subtotal</span><span>₹ ${Number(inv.TaxableValue).toLocaleString()}</span></div>
-                        <div class="flex justify-between text-xs font-bold text-indigo-600 uppercase tracking-tighter"><span>GST (${inv.TaxRate}%)</span><span>₹ ${(Number(inv.CGST)+Number(inv.SGST)+Number(inv.IGST)).toLocaleString()}</span></div>
-                        <div class="flex justify-between text-xl font-black bg-slate-900 text-white p-4 rounded-xl shadow-lg mt-4"><span>TOTAL</span><span>₹ ${Number(inv.Total).toLocaleString()}</span></div>
+                        <div class="flex justify-between text-xs font-bold text-slate-500 uppercase"><span>Subtotal</span><span>₹ ${Number(inv.TaxableValue).toLocaleString()}</span></div>
+                        <div class="flex justify-between text-xs font-bold text-indigo-600 uppercase"><span>GST (${inv.TaxRate}%)</span><span>₹ ${(Number(inv.CGST)+Number(inv.SGST)+Number(inv.IGST)).toLocaleString()}</span></div>
+                        <div class="flex justify-between text-xl font-black bg-slate-900 text-white p-4 rounded-xl mt-4"><span>TOTAL</span><span>₹ ${Number(inv.Total).toLocaleString()}</span></div>
                         ${!isQuote && Number(inv.TDS10) > 0 ? `
-                        <div class="pt-4 mt-2 border-t border-dashed border-slate-300">
-                            <div class="flex justify-between text-[10px] font-black text-rose-600 uppercase"><span>Less: TDS (10%)</span><span>- ₹ ${Number(inv.TDS10).toLocaleString()}</span></div>
+                        <div class="pt-4 border-t border-dashed border-slate-300">
+                            <div class="flex justify-between text-[10px] font-black text-rose-600 uppercase"><span>Less TDS (10%)</span><span>- ₹ ${Number(inv.TDS10).toLocaleString()}</span></div>
                             <div class="flex justify-between text-xs font-black text-emerald-700 mt-1 uppercase"><span>Net Payable</span><span>₹ ${(Number(inv.Total)-Number(inv.TDS10)).toLocaleString()}</span></div>
                         </div>
                         ` : ''}
                     </div>
                 </div>
 
-                <div class="flex justify-between items-end text-[10px] text-slate-400 font-black tracking-widest uppercase italic">
-                    <div>TERMS: Payment within 15 days of invoice date.</div>
-                    <div class="text-right">Digital Signature Not Required.</div>
+                <div class="text-[9px] text-slate-400 font-black uppercase tracking-widest italic border-t pt-4">
+                    NOTE: Payment within 15 days of invoice date. Computer generated document.
                 </div>
             `;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
 
-        function renderList(type) {
-            let data = [];
-            if(type === 'income') data = appData.income.filter(r => r.Status !== 'Quotation');
-            else if(type === 'expenses') data = appData.expenses;
-            else if(type === 'quotes') data = appData.income.filter(r => r.Status === 'Quotation');
+        // REPORTING
+        function renderReports(type) {
+            const content = document.getElementById('report-content');
+            const sales = appData.income.filter(r => r.Status !== 'Quotation');
+            const inc = sales.reduce((s,r) => s + Number(r.TaxableValue), 0);
+            const exp = appData.expenses.reduce((s,r) => s + Number(r.TaxableValue), 0);
+            const tds = sales.reduce((s,r) => s + Number(r.TDS10), 0);
 
-            document.getElementById('list-body').innerHTML = data.map(r => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="px-6 py-4 text-slate-400 font-bold">${r.Date}</td>
-                    <td class="px-6 py-4 font-black text-slate-800">${r.TransactionID || r.ExpenseID}</td>
-                    <td class="px-6 py-4 font-black text-slate-800">${r.EntityName || r.VendorName}</td>
-                    <td class="px-6 py-4 text-right text-slate-500">₹${Number(r.TaxableValue).toLocaleString('en-IN')}</td>
-                    <td class="px-6 py-4 text-right text-slate-500">₹${(Number(r.CGST)+Number(r.SGST)+Number(r.IGST)).toLocaleString()}</td>
-                    <td class="px-6 py-4 text-right text-rose-600 font-bold">₹${Number(r.TDS10 || 0).toLocaleString()}</td>
-                    <td class="px-6 py-4 text-right font-black text-slate-900">₹${Number(r.Total).toLocaleString()}</td>
-                    <td class="px-6 py-4 text-center"><span class="badge ${r.Status === 'Paid' ? 'badge-paid' : r.Status === 'Quotation' ? 'badge-quote' : 'badge-pending'}">${r.Status}</span></td>
-                    <td class="px-6 py-4 text-center">
-                        <button onclick="openInvoice('${r.TransactionID || r.ExpenseID}')" class="text-indigo-600 hover:scale-125 transition"><i class="fas fa-file-invoice"></i></button>
-                    </td>
-                </tr>
-            `).join('');
+            if(type === 'pl') {
+                content.innerHTML = `
+                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black">Profit & Loss</h2></div>
+                    <table class="w-full text-sm">
+                        <tr class="report-header"><th class="px-4 py-3 text-left">Vertical</th><th class="px-4 py-3 text-right">Revenue</th></tr>
+                        <tr><td class="px-6 py-2">Academy</td><td class="text-right">₹ ${sales.filter(r=>r.VerticalID==='V01').reduce((s,r)=>s+Number(r.TaxableValue), 0).toLocaleString()}</td></tr>
+                        <tr><td class="px-6 py-2">Consultants</td><td class="text-right">₹ ${sales.filter(r=>r.VerticalID==='V02').reduce((s,r)=>s+Number(r.TaxableValue), 0).toLocaleString()}</td></tr>
+                        <tr><td class="px-6 py-2">Consulting</td><td class="text-right">₹ ${sales.filter(r=>r.VerticalID==='V03').reduce((s,r)=>s+Number(r.TaxableValue), 0).toLocaleString()}</td></tr>
+                        <tr class="report-subtotal"><td class="px-4 py-3 uppercase">Total Gross Revenue</td><td class="text-right">₹ ${inc.toLocaleString()}</td></tr>
+                        <tr><td class="px-4 py-4 font-black text-rose-600 pt-8">Less: Business Expenses</td><td class="text-right pt-8 font-bold">₹ ${exp.toLocaleString()}</td></tr>
+                        <tr class="bg-slate-900 text-white font-black"><td class="px-4 py-5 text-lg uppercase">Net Surplus</td><td class="text-right text-xl text-emerald-400">₹ ${(inc - exp).toLocaleString()}</td></tr>
+                    </table>
+                `;
+            } else if (type === 'bs') {
+                content.innerHTML = `
+                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black">Provisional Balance Sheet</h2></div>
+                    <div class="grid grid-cols-2 gap-10">
+                        <div class="space-y-4">
+                            <h4 class="font-black border-b-2 border-emerald-500 uppercase text-xs pb-1">Assets</h4>
+                            <div class="flex justify-between text-xs py-1"><span>TDS Receivable Asset</span><span class="font-bold">₹ ${tds.toLocaleString()}</span></div>
+                            <div class="flex justify-between text-xs py-1"><span>Estimated Liquid Cash</span><span class="font-bold">₹ ${(inc-exp-tds).toLocaleString()}</span></div>
+                            <div class="border-t font-black pt-2 flex justify-between"><span>Total Assets</span><span>₹ ${(inc-exp).toLocaleString()}</span></div>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="font-black border-b-2 border-rose-500 uppercase text-xs pb-1">Equity & Liab.</h4>
+                            <div class="flex justify-between text-xs py-1"><span>Accumulated Surplus</span><span class="font-bold">₹ ${(inc-exp).toLocaleString()}</span></div>
+                            <div class="border-t font-black pt-2 flex justify-between"><span>Total Equity</span><span>₹ ${(inc-exp).toLocaleString()}</span></div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'cf') {
+                content.innerHTML = `
+                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black">Cash Flow</h2></div>
+                    <div class="space-y-4 max-w-lg mx-auto">
+                        <div class="flex justify-between"><span>Cash from Sales (Confirmed)</span><span class="font-bold text-emerald-600">+₹ ${inc.toLocaleString()}</span></div>
+                        <div class="flex justify-between"><span>Less: TDS Retained by Clients</span><span class="font-bold text-rose-600">-₹ ${tds.toLocaleString()}</span></div>
+                        <div class="flex justify-between border-b pb-2"><span>Less: Operational Expenses</span><span class="font-bold text-rose-600">-₹ ${exp.toLocaleString()}</span></div>
+                        <div class="flex justify-between text-lg font-black bg-slate-100 p-4 rounded"><span>Net Movement</span><span>₹ ${(inc-tds-exp).toLocaleString()}</span></div>
+                    </div>
+                `;
+            } else if (type === 'aging') {
+                const pending = sales.filter(r => r.Status === 'Pending');
+                content.innerHTML = `
+                    <div class="text-center mb-10 border-b pb-8"><h2 class="text-3xl font-black">Accounts Receivable</h2></div>
+                    <table class="w-full text-xs">
+                        <thead class="report-header"><tr><th class="px-6 py-3">Partner</th><th class="px-6 py-3 text-right">Amount Owed</th></tr></thead>
+                        <tbody>${pending.map(p => `<tr><td class="px-6 py-3 font-bold uppercase">${p.EntityName}</td><td class="px-6 py-3 text-right font-black">₹ ${p.Total.toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" class="p-10 text-center">No outstanding AR</td></tr>'}</tbody>
+                    </table>
+                `;
+            }
         }
 
-        // STANDARD HELPERS
+        // HELPERS
         function closeInvoice() { document.getElementById('invoice-modal').classList.add('hidden'); }
         function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText = msg; t.classList.remove('translate-y-24'); setTimeout(() => t.classList.add('translate-y-24'), 4000); }
         function openContactModal() { document.getElementById('contact-modal').classList.remove('hidden'); document.getElementById('contact-modal').classList.add('flex'); }
@@ -637,7 +586,7 @@
 
         function setFormType(type) {
             document.getElementById('input-type').value = type;
-            document.getElementById('form-title').innerText = type === 'income' ? 'New Invoice / Quote' : 'New Bill Entry';
+            document.getElementById('form-title').innerText = type === 'income' ? 'New Invoice / Quote' : 'New Purchase Voucher';
             document.getElementById('type-inc').className = type === 'income' ? 'px-4 py-1.5 text-[10px] font-bold rounded-md bg-white shadow-sm' : 'px-4 py-1.5 text-[10px] font-bold rounded-md text-slate-600';
             document.getElementById('type-exp').className = type === 'expense' ? 'px-4 py-1.5 text-[10px] font-bold rounded-md bg-white shadow-sm' : 'px-4 py-1.5 text-[10px] font-bold rounded-md text-slate-600';
             populateContactSelect();
@@ -647,7 +596,7 @@
             const select = document.getElementById('contact-select');
             const type = document.getElementById('input-type').value === 'income' ? 'Customer' : 'Vendor';
             const list = appData.contacts.filter(c => c.Type === type);
-            select.innerHTML = '<option value="">Select Master Contact...</option>' + list.map(c => `<option value="${c.Name}">${c.Name}</option>`).join('');
+            select.innerHTML = '<option value="">Select Partner...</option>' + list.map(c => `<option value="${c.Name}">${c.Name}</option>`).join('');
         }
 
         function autoFillContact(name) {
@@ -658,14 +607,76 @@
             }
         }
 
+        function renderList(type) {
+            let data = [];
+            if(type === 'income') data = appData.income.filter(r => r.Status !== 'Quotation');
+            else if(type === 'expenses') data = appData.expenses;
+            else if(type === 'quotes') data = appData.income.filter(r => r.Status === 'Quotation');
+
+            document.getElementById('list-body').innerHTML = data.map(r => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4 font-bold text-slate-400">${r.Date}</td>
+                    <td class="px-6 py-4 font-black">${r.TransactionID || r.ExpenseID}</td>
+                    <td class="px-6 py-4 font-black uppercase">${r.EntityName || r.VendorName}</td>
+                    <td class="px-6 py-4 text-right">₹${Number(r.TaxableValue).toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-slate-400">₹${(Number(r.CGST)+Number(r.SGST)+Number(r.IGST)).toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-rose-500 font-bold">₹${Number(r.TDS10 || 0).toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right font-black">₹${Number(r.Total).toLocaleString()}</td>
+                    <td class="px-6 py-4 text-center"><span class="badge ${r.Status === 'Paid' ? 'badge-paid' : r.Status === 'Quotation' ? 'badge-quote' : 'badge-pending'}">${r.Status}</span></td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="openInvoice('${r.TransactionID || r.ExpenseID}')" class="text-indigo-600"><i class="fas fa-file-invoice"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderBudgets() {
+            const body = document.getElementById('budget-table-body');
+            body.innerHTML = appData.budgets.map(b => {
+                const actualRev = appData.income.filter(r => r.VerticalID === b.VerticalID && r.Status !== 'Quotation').reduce((s,r) => s + Number(r.TaxableValue), 0);
+                const actualExp = appData.expenses.filter(r => r.VerticalID === b.VerticalID).reduce((s,r) => s + Number(r.TaxableValue), 0);
+                const revVar = ((actualRev - b.TargetRevenue) / b.TargetRevenue) * 100;
+                const expVar = ((actualExp - b.TargetExpense) / b.TargetExpense) * 100;
+                return `
+                    <tr class="font-medium">
+                        <td class="px-6 py-4 font-black text-slate-800">${verticalNames[b.VerticalID]}</td>
+                        <td class="px-6 py-4 text-right">₹ ${Number(b.TargetRevenue).toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right font-bold text-indigo-600">₹ ${actualRev.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right ${revVar >= 0 ? 'text-emerald-600' : 'text-rose-600'} font-black">${revVar.toFixed(1)}%</td>
+                        <td class="px-6 py-4 text-right">₹ ${Number(b.TargetExpense).toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right font-bold">₹ ${actualExp.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right ${expVar <= 0 ? 'text-emerald-600' : 'text-rose-600'} font-black">${expVar.toFixed(1)}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderContacts() {
+            const view = document.getElementById('view-contacts');
+            view.innerHTML = appData.contacts.map(c => `
+                <div class="card p-6 border-t-4 ${c.Type === 'Customer' ? 'border-indigo-500' : 'border-emerald-500'}">
+                    <h4 class="font-black text-slate-800 uppercase">${c.Name}</h4>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${c.GSTIN || 'Unregistered'}</p>
+                    <div class="mt-4 space-y-1.5 text-[10px] font-medium text-slate-500">
+                        <div><i class="fas fa-map-marker-alt w-4"></i> ${c.Address || 'No Address'}</div>
+                        <div><i class="fas fa-envelope w-4"></i> ${c.Email || '-'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // FORMS
         document.getElementById('erpForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(e.target).entries());
             try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-                showToast("Transaction Recorded Successfully");
-                e.target.reset(); switchView('dashboard'); fetchData();
-            } catch (e) { showToast("Network Sync Error", 'error'); }
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+                const result = await res.json();
+                if(result.status === 'success') {
+                    showToast("Voucher RAVE-" + result.data.id + " Recorded");
+                    e.target.reset(); switchView('dashboard'); fetchData();
+                }
+            } catch (e) { showToast("Sync Failure", 'error'); }
         });
 
         document.getElementById('contactForm').addEventListener('submit', async (e) => {
@@ -674,37 +685,10 @@
             data.action = 'saveContact';
             try {
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-                showToast("Contact Master Synchronized");
+                showToast("Contact Master Updated");
                 e.target.reset(); closeContactModal(); fetchData();
             } catch (e) { showToast("Save Failure", "error"); }
         });
-
-        function renderContacts() {
-            const view = document.getElementById('view-contacts');
-            view.innerHTML = appData.contacts.map(c => `
-                <div class="card p-6 border-t-4 ${c.Type === 'Customer' ? 'border-indigo-500' : 'border-emerald-500'}">
-                    <h4 class="font-black text-slate-800 uppercase tracking-tight">${c.Name}</h4>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase mb-4 tracking-widest">${c.GSTIN || 'No Registered GSTIN'}</p>
-                    <div class="space-y-1.5 text-[11px] text-slate-500 font-medium">
-                        <div class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-slate-300 w-3"></i> ${c.Address || 'No Address'}</div>
-                        <div class="flex items-center gap-2"><i class="fas fa-envelope text-slate-300 w-3"></i> ${c.Email || '-'}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function renderTax() {
-            const confirmedSales = appData.income.filter(r => r.Status !== 'Quotation');
-            const outTax = confirmedSales.reduce((s,r) => s + Number(r.CGST) + Number(r.SGST) + Number(r.IGST), 0);
-            const inTax = appData.expenses.reduce((s,r) => s + Number(r.CGST) + Number(r.SGST) + Number(r.IGST), 0);
-            const tdsRec = confirmedSales.reduce((s,r) => s + Number(r.TDS10), 0);
-
-            document.getElementById('tax-tds-receivable').innerText = `₹ ${tdsRec.toLocaleString('en-IN')}`;
-            document.getElementById('tax-gst-net').innerText = `₹ ${(outTax - inTax).toLocaleString('en-IN')}`;
-        }
-
-        fetchData();
-        switchView('dashboard');
     </script>
 </body>
 </html>
